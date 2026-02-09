@@ -13,10 +13,67 @@
 
     <a href="https://logwork.com/free-currency-converter-calculator"
        class="currency_convertor"
-       data-currencies="EUR,JPY"
-      data-amount="1">
+       data-currencies="EUR,JPY">
       Currency Converter
     </a>
-    
+    <script>
+      (function () {
+        const host = document.querySelector("a.currency_convertor");
+        if (!host) return;
+
+        function applyAmount(iframe) {
+          const run = () => {
+            let doc;
+            try {
+              doc = iframe.contentDocument || iframe.contentWindow.document;
+            } catch (e) {
+              console.warn("No se puede modificar: el iframe es cross-origin (bloqueado por el navegador).");
+              return true; // paramos
+            }
+
+            const input =
+              doc.querySelector('input[name="amount"]') ||
+              doc.querySelector('#amount') ||
+              doc.querySelector('input[type="number"]') ||
+              doc.querySelector('input');
+
+            if (!input) return false;
+
+            // set 1 y disparamos eventos típicos
+            input.focus();
+            input.value = "1";
+            ["input", "change", "keyup"].forEach(ev =>
+              input.dispatchEvent(new Event(ev, { bubbles: true }))
+            );
+
+            return true;
+          };
+
+          // Si ya está cargado, intenta ya; si no, espera al load
+          if (iframe.contentDocument && iframe.contentDocument.readyState === "complete") {
+            run();
+          } else {
+            iframe.addEventListener("load", run, { once: true });
+          }
+        }
+
+        // Espera a que el widget inserte el iframe dentro del <a>
+        const obs = new MutationObserver(() => {
+          const iframe = host.querySelector("iframe");
+          if (iframe) {
+            obs.disconnect();
+            applyAmount(iframe);
+          }
+        });
+        obs.observe(host, { childList: true, subtree: true });
+
+        // Por si el iframe ya existía
+        const existing = host.querySelector("iframe");
+        if (existing) {
+          obs.disconnect();
+          applyAmount(existing);
+        }
+      })();
+    </script>
   </body>
 </html>
